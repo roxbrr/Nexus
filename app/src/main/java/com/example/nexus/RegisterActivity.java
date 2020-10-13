@@ -5,9 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
-import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -26,7 +24,8 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RegisterActivity extends AppCompatActivity implements View.OnClickListener {
+public class RegisterActivity extends AppCompatActivity implements View.OnClickListener
+{
 
     private static final String TAG = "RegisterActivity";
     public static final String EMAIL = "email";
@@ -34,14 +33,12 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
     public static final String F_NAME = "fName";
     public static final String PHONE_NUM = "phoneNum";
 
-    private FirebaseAuth mAuth;
-    String test;
-
-    private DocumentReference documentReference = FirebaseFirestore.getInstance().document("Users/"+test);
+    private FirebaseAuth fAuth;
 
     EditText etFirstName, etLastName, etPhoneNum, etEmail, etPassword, etConfirmPassword;
     Button btnRegister;
     ImageView ivBackButton;
+    String userID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -50,7 +47,7 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
         setContentView(R.layout.activity_register);
         Log.d(TAG, "onCreate: started.");
 
-        mAuth = FirebaseAuth.getInstance();
+        fAuth = FirebaseAuth.getInstance();
 
         etFirstName = findViewById(R.id.register_et_first_name);
         etLastName = findViewById(R.id.register_et_last_name);
@@ -63,8 +60,6 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
 
         btnRegister.setOnClickListener(this);
         ivBackButton.setOnClickListener(this);
-
-
     }
 
 
@@ -85,8 +80,8 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
 
     public void createAccount()
     {
-        String emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+";
-        String phonePattern = "[0-9]{10}";
+//        String emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+";
+//        String phonePattern = "[0-9]{10}";
 
         final String fName = etFirstName.getText().toString().trim();
         final String lName = etLastName.getText().toString().trim();
@@ -184,7 +179,7 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
         }
 
 
-        mAuth.createUserWithEmailAndPassword(email,password)
+        fAuth.createUserWithEmailAndPassword(email,password)
                 .addOnCompleteListener(RegisterActivity.this, new OnCompleteListener<AuthResult>()
         {
             @Override
@@ -196,23 +191,31 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
                             + task.getException(), Toast.LENGTH_LONG).show();
                 }else
                     {
-                        DocumentReference documentReference = FirebaseFirestore.getInstance().document("Users/"+ FirebaseAuth.getInstance().getUid());
-
-                        User user = new User(fName,lName,phoneNum, email);
-
-                        Map<String, Object> dataToSave = new HashMap<>();
-                        dataToSave.put(F_NAME, fName);
-                        dataToSave.put(L_NAME, lName);
-                        dataToSave.put(PHONE_NUM, phoneNum);
-                        dataToSave.put(EMAIL, email);
-                        documentReference.set(dataToSave).addOnSuccessListener(new OnSuccessListener<Void>() {
+                        if(fAuth.getCurrentUser().getUid().equals(null))
+                        {
+                            Log.d(TAG, "onComplete: error setting userID");
+                        }else
+                            {
+                            userID = fAuth.getCurrentUser().getUid();
+                            }
+                        Map<String, Object> userData = new HashMap<>();
+                        userData.put(F_NAME, fName);
+                        userData.put(L_NAME, lName);
+                        userData.put(PHONE_NUM, phoneNum);
+                        userData.put(EMAIL, email);
+                        DocumentReference documentReference = FirebaseFirestore.getInstance().collection("Users").document(userID);
+                        documentReference.set(userData).addOnSuccessListener(new OnSuccessListener<Void>()
+                        {
                             @Override
-                            public void onSuccess(Void aVoid) {
+                            public void onSuccess(Void aVoid)
+                            {
                                 Log.d(TAG, "Document Saved");
                             }
-                        }).addOnFailureListener(new OnFailureListener() {
+                        }).addOnFailureListener(new OnFailureListener()
+                        {
                             @Override
-                            public void onFailure(@NonNull Exception e) {
+                            public void onFailure(@NonNull Exception e)
+                            {
                                 Log.w(TAG, "Document not saved", e);
                             }
                         });
